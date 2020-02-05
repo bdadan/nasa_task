@@ -9,7 +9,9 @@ use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactory;
@@ -48,7 +50,11 @@ class NasaApiController extends AbstractFOSRestController
             $date = \DateTime::createFromFormat('Y-m-d', $date);
         }
 
-        $this->checkParams($date, $rover, $camera);
+        $errors = $this->checkParams($date, $rover, $camera);
+
+        if (count($errors) > 0) {
+            return new JsonResponse($errors, Response::HTTP_BAD_REQUEST);
+        }
 
         $imageRepository = $this->getDoctrine()->getRepository(NasaImage::class);
         $images = $imageRepository->findByFields($rover, $camera, $date);
@@ -62,19 +68,22 @@ class NasaApiController extends AbstractFOSRestController
     }
 
     /**
-     * @Rest\Get("/get_photos_details/{photo}", name="get_photos")
+     * @Rest\Get("/get_photos_details", name="get_photos_details")
      *
      * @param Request $request
      * @param NasaApiService $apiService
      * @return JsonResponse
      */
-    public function getPhotosDetails(Request $request, NasaApiService $apiService, $photo)
+    public function getPhotosDetails(Request $request, NasaApiService $apiService)
     {
-
+        $photoId = $request->get('photo_id');
         $imageRepository = $this->getDoctrine()->getRepository(NasaImage::class);
-        $image = $imageRepository->find((int)$photo);
 
-        if (!$image) {
+        if ($photoId) {
+            $image = $imageRepository->find($photoId);
+        }
+
+        if (!isset($image)) {
             $image = $imageRepository->findAll();
         }
 
@@ -87,11 +96,12 @@ class NasaApiController extends AbstractFOSRestController
     }
 
     /**
-     * @param \DateTime $date
+     * @param $date
      * @param $rover
      * @param $camera
+     * @return array
      */
-    public function checkParams($date, $rover, $camera): void
+    public function checkParams($date, $rover, $camera)
     {
         $errors = [];
         if ($date === false) {
@@ -108,11 +118,7 @@ class NasaApiController extends AbstractFOSRestController
                 . implode(',', NasaApiService::CAMERAS_ABBREVIATION);
         }
 
-        if (count($errors) > 0) {
-            throw new BadRequestHttpException(
-                implode("\n", $errors)
-            );
-        }
+        return $errors;
     }
 
     /**
