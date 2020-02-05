@@ -1,4 +1,4 @@
-# nasa_task
+# nasa_task ( i think only curiosity rover was active in 2019)
 
 ###1. Command to import/refresh polish holidays :
 
