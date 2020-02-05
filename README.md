@@ -13,6 +13,7 @@ param| options
 camera | FHAZ, RHAZ
 rover | curiosity, opportunity, spirit
 date | format: YYYY-MM-DD
+
 ###1. endpoint b) :
 ```
 http://your_app_address/api/get_photos_details/{photo_id}
